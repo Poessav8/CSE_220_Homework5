@@ -59,7 +59,6 @@ print_student:
 
   jr $ra
 
-
 init_student_array:
   #$a0: num_students
   #$a1: id_list
@@ -68,74 +67,113 @@ init_student_array:
   #$sp: records[], pointer to uninitialized region of memory with size 8*num_students
 
   # Initialize counter, save inputs to temporary values
-  li $t9, 0   # Initialize counter, $t9 = i
+  #li $t9, 0   # Initialize counter, $t9 = i
+  
   move $t1, $a0  # Load the upper loop constraint, $t1 = num_students
-  move $t8, $a3 #$t8 holds pointer to name
-  move $t7, $a2 #$t7 holds credits_list
-  move $t6, $a1 #$t6 holds id_list
+  
+  
+  
+  
+  #ok i'm going to store everything above. 
+  
+  lw $t5, 0($sp)
 
+  addi $sp, $sp, -20
+  sw $ra, 0($sp)
+  sw $s0, 4($sp)
+  sw $s1, 8($sp)
+  sw $s2, 12($sp)
+  sw $s3, 16($sp)
+  move $s0, $a3 #s0 stores pointer to name
+  move $s1, $a2 #s1 stores credits_list
+  move $s2, $a1 #s2 stores id_list, t6
+  
+  li $s3, 0 #s3: initialize counter
+  
   
   loop:
     beqz $t1, done
-    sll $t0, $t9, 2 #multiply indx by 4
+    sll $t0, $s3, 2 #multiply indx by 4
 
 
     #id_list
-    add $t2, $t0, $t6 #address of id id_list
+    add $t2, $t0, $s2 #address of id id_list
     lw $t3, 0($t2) #t3 = id_list[i]
     move $a0, $t3
     
     #credit_list
-    add $t2, $t0, $t7 #address of credits_list
+    add $t2, $t0, $s1 #address of credits_list
     lw $t3, 0($t2) #t3 = credit_list[i]
     move $a1, $t3
 
     #pointer to name
-    move $a2, $t8
+    move $a2, $s0
     
     name_loop:
-      lb $t4, 0($t8)
+      lb $t4, 0($s0)
       beqz $t4, done_loop
-      addi $t8, $t8, 1
+      addi $s0, $s0, 1
       j name_loop
     done_loop:
 
     #pointer to record
-    sll $t0, $t9, 3 #multiply indx by 8
-    sub $sp, $sp, $t0 #get indx of next record
+    sll $t0, $s3, 3 #multiply indx by 8
+    add $t5, $t5, $t0 #get indx of next record
 
-    move $a3, $sp 
+    move $a3, $t5 
 
-    addi $t8, $t8, 1
+    addi $s0, $s0, 1
     addi $t1, $t1, -1
-    addi $t9, $t9, 1
+    addi $s3, $s3, 1
 
-    # call init_student and save return value in $sp
+    # call init_student, this function saves student data to $a3
     jal init_student
 
-    # Move contents of $a3 (initialized student) into memory pointed by $sp
-    sw $a3, 0($sp)   # Store the initialized student in the memory pointed by $sp
     j loop
   done:
-
+  lw $ra, 0($sp)
+  lw $s0, 4($sp)
+  lw $s1, 8($sp)
+  lw $s2, 12($sp)
+  lw $s3, 16($sp)
+  addi $sp, $sp, 20
   jr $ra  # Return from the function
 
 	
 insert:
-  #array of pointers to student records
-  #empty item: null pointer
-  #when student record is deleted, item is replaced by -1 (0xFFFFFFFF)
-  #given pointer to student record, insert the pointer to the hash table
-  #if occupied, use linear probing to find empty index
-
-  #return -1 if hash table is full and record could not be inserted
-  #return array index the record was inserted in
-
-
   #$a0: pointer to student record
   #$a1: pointer to hash table
   #$a2: table_size
-  #$v0: array index stored in or -1
+  #$v0: array index stored in hash, or -1
+
+  #make space in $sp, save registers
+  addi $sp, $sp, -8 #allocate space on stack
+  sw $ra, 4($sp)
+  sw $s0, 0($sp)
+
+  #load student id+credits
+  lw $s0, 0($a0) #load id and credits into $s0
+  srl $s0, $s0, 10 #isolate the student's id
+  div $s0, $a2 #get the index of current student in hash table
+  mfhi $t0 #INDEX IN HASH TABLE
+ 
+  #copy original index in hash table
+  move $t1, $t0 #$t1 original index in hash table
+
+  #loop: calculate and check whether current index is occupied
+  #within loop: do linear probing. each time i linearly probe, check again
+    #check if empty -> insert, $v0 = indx
+    #check if -1 -> insert, $v0 = indx
+    #linear probe
+      #if end up back at original index, $v0 = -1
+
+  check_index: 
+    #check what is stored at index in hash table currently 
+    #calculate index with offset (4)
+    #sll $t1, $t1, 2 #multiply by 4
+    #lw $t2, $t1()
+
+
 	jr $ra
 	
 search:
