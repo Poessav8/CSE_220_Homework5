@@ -71,7 +71,9 @@ init_student_array:
   
   move $t1, $a0  # Load the upper loop constraint, $t1 = num_students
   
-  
+  #move $t8, $a3 #$t8 holds pointer to name
+  #move $t7, $a2 #$t7 holds credits_list
+  #move $t6, $a1 #$t6 holds id_list
   
   
   #ok i'm going to store everything above. 
@@ -84,16 +86,16 @@ init_student_array:
   sw $s1, 8($sp)
   sw $s2, 12($sp)
   sw $s3, 16($sp)
-  move $s0, $a3 #s0 stores pointer to name
-  move $s1, $a2 #s1 stores credits_list
+  move $s0, $a3 #s0 stores pointer to name, t8
+  move $s1, $a2 #s1 stores credits_list, t7
   move $s2, $a1 #s2 stores id_list, t6
-  
-  li $s3, 0 #s3: initialize counter
+  li $s3, 0 ##s3: initialize counter, t9
   
   
   loop:
     beqz $t1, done
     sll $t0, $s3, 2 #multiply indx by 4
+
 
 
     #id_list
@@ -117,8 +119,9 @@ init_student_array:
     done_loop:
 
     #pointer to record
-    sll $t0, $s3, 3 #multiply indx by 8
-    add $t5, $t5, $t0 #get indx of next record
+    #sll $t0, $s3, 3 #multiply indx by 8
+    
+    #add $t5, $t5, $t0 #get indx of next record
 
     move $a3, $t5 
 
@@ -128,6 +131,8 @@ init_student_array:
 
     # call init_student, this function saves student data to $a3
     jal init_student
+    
+    addi $t5, $t5, 8
 
     j loop
   done:
@@ -138,7 +143,6 @@ init_student_array:
   lw $s3, 16($sp)
   addi $sp, $sp, 20
   jr $ra  # Return from the function
-
 	
 insert:
   #$a0: pointer to student record
