@@ -145,40 +145,75 @@ init_student_array:
   jr $ra  # Return from the function
 	
 insert:
-  #$a0: pointer to student record
-  #$a1: pointer to hash table
-  #$a2: table_size
-  #$v0: array index stored in hash, or -1
+  # $a0: pointer to student record
+# $a1: pointer to hash table
+# $a2: table_size
+# $v0: array index stored in hash, or -1
 
-  #make space in $sp, save registers
-  addi $sp, $sp, -8 #allocate space on stack
-  sw $ra, 4($sp)
-  sw $s0, 0($sp)
+# Make space in $sp, save registers
+	addi $sp, $sp, -12  # Allocate space on the stack
+	sw $ra, 4($sp)
+	sw $s0, 0($sp)
+	sw $s1, 8($sp)  # Store pointer to hash table in $s1
 
-  #load student id+credits
-  lw $s0, 0($a0) #load id and credits into $s0
-  srl $s0, $s0, 10 #isolate the student's id
-  div $s0, $a2 #get the index of current student in hash table
-  mfhi $t0 #INDEX IN HASH TABLE
- 
-  #copy original index in hash table
-  move $t1, $t0 #$t1 original index in hash table
+# Load student id+credits
+	lw $s0, 0($a0)  # Load id and credits into $s0
+	srl $s0, $s0, 10  # Isolate the student's id
+	move $t6, $s0 #store copy of student id in $t6
+	div $s0, $a2  # Get the index of the current student in the hash table. ex: 3
+	mfhi $s0  # INDEX IN HASH TABLE, without offset = 3
 
-  #loop: calculate and check whether current index is occupied
-  #within loop: do linear probing. each time i linearly probe, check again
-    #check if empty -> insert, $v0 = indx
-    #check if -1 -> insert, $v0 = indx
-    #linear probe
-      #if end up back at original index, $v0 = -1
+# Copy original index in hash table
+	move $t1, $s0  # $t1 holds a copy of the original index in the hash table = 3
+	li $t0, 4  # $t0 contains the word offset
+	li $t1, -1  # TOMBSTONE VAL
+	
+	move $t5, $s0 #contains copy of original indx, again
+	
 
-  check_index: 
-    #check what is stored at index in hash table currently 
-    #calculate index with offset (4)
-    #sll $t1, $t1, 2 #multiply by 4
-    #lw $t2, $t1()
+# Loop: calculate and check whether the current index is occupied
+# Within loop: do linear probing. Each time I linearly probe, check again
+  # Check if empty -> insert, $v0 = index
+  # Check if -1 -> insert, $v0 = index
+  # Linear probe
+    # If end up back at the original index, $v0 = -1
+
+check_index:
+  mul $t2, $t5, $t0 #get index in hash table, accounting for word size
+  add $s1, $a1, $t2 #get address of index in hash table
+  lw $t2, 0($s1) #get word from address of index in hash table
+  beqz $t2, insert_to_table #if empty, insert
+  beq $t2, $t1, insert_to_table #if word == TOMBSTONE_VAL, insert
+  
+  #else, we need to linear probe.
+  addi $t6, $t6, 1 #increment the student's ID by one
+  div $t6, $a2 #divide (id+1)/MAX
+  mfhi $t5 #store remainder in $t5
+  
+  beq $t5, $s0, hash_full #if we get back to original index, the hash table is full.
+  
+  j check_index
 
 
-	jr $ra
+
+  insert_to_table:
+  	sw $a0, 0($s1)  # Store in $s1 
+  	move $v0, $t5  # Contents
+  	j exit
+
+
+  hash_full:
+  	li $v0, -1
+  	j exit
+
+  exit:
+  	lw $ra, 4($sp)
+  	lw $s0, 0($sp)
+  	lw $s1, 8($sp)
+  	addi $sp, $sp, 12
+
+  jr $ra
+	
 	
 search:
 	jr $ra
