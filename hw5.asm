@@ -24,30 +24,30 @@ init_student:
 print_student:
   # $a0: pointer to student record struct (8 bytes)
 
-  # Load the student ID and credits from the student record
-  lw $t0, 0($a0)     # Load 32 bits which contains student ID + credits
-  srl $t1, $t0, 10   # Extract the student ID (22 bits)
-  andi $t2, $t0, 0x3FF   # Extract the number of credits (10 bits)
+  # load the student ID and credits from the student record
+  lw $t0, 0($a0)     # load 32 bits which contains student ID + credits
+  srl $t1, $t0, 10   # get student ID (22 bits)
+  andi $t2, $t0, 0x3FF   # get number of credits (10 bits)
   
-  # Load the pointer to the name from the student record
-  lw $t3, 4($a0)     # Load the lower 32 bits of the pointer to the name
+  # get pointer to the name from the student record
+  lw $t3, 4($a0)     # get 32 bit pointer to name
   
-  # Print the student ID
-  li $v0, 1           # Print integer
+  # print id
+  li $v0, 1          
   move $a0, $t1
   syscall
   
-  # Print space
-  li $a0, 32          # ASCII space
-  li $v0, 11          # Print character
+  # print space
+  li $a0, 32          
+  li $v0, 11          
   syscall
   
-  # Print num_credits
+  # print num_credits
   li $v0, 1
   move $a0, $t2
   syscall
   
-  # Print space
+  # print space
   li $a0, 32
   li $v0, 11
   syscall
@@ -151,10 +151,9 @@ insert:
 # $v0: array index stored in hash, or -1
 
 # Make space in $sp, save registers
-	addi $sp, $sp, -12  # Allocate space on the stack
-	sw $ra, 4($sp)
+	addi $sp, $sp, -8  # Allocate space on the stack
 	sw $s0, 0($sp)
-	sw $s1, 8($sp)  # Store pointer to hash table in $s1
+	sw $s1, 4($sp)  # Store pointer to hash table in $s1
 
 # Load student id+credits
 	lw $s0, 0($a0)  # Load id and credits into $s0
@@ -207,10 +206,9 @@ check_index:
   	j exit
 
   exit:
-  	lw $ra, 4($sp)
   	lw $s0, 0($sp)
-  	lw $s1, 8($sp)
-  	addi $sp, $sp, 12
+  	lw $s1, 4($sp)
+  	addi $sp, $sp, 8
 
   jr $ra
 	
@@ -228,7 +226,7 @@ search:
 
   div $a0, $a2 # divide id by table size to get array index
   mfhi $t2 # $t0 = array index
-  addi $sp, $sp, -8
+  addi $sp, $sp, -4
 
   li $t0, 4  # $t0 contains the word offset
   li $t1, -1 #TOMBSTONE
@@ -236,7 +234,6 @@ search:
   # Get index in the original array
   move $t5, $a0  # Copy student id
   sw $s0, 0($sp)
-  sw $ra, 4($sp)
 
   move $t6, $t2  # Store original index in $t6
   move $t4, $a1  # Copy address of hash table
@@ -270,9 +267,8 @@ not_found:
   j exit_loop
 
 exit_loop:
-  lw $ra, 4($sp)
   lw $s0, 0($sp)
-  addi $sp, $sp, 8
+  addi $sp, $sp, 4
 
   jr $ra
 
