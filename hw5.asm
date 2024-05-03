@@ -215,6 +215,7 @@ check_index:
   jr $ra
 	
 	
+
 search:
   #$a0: student id (integer)
   #$a1: address of hash table
@@ -225,14 +226,14 @@ search:
   # Return in $v0: pointer to student record if found, 0 if not
   # Return in $v1: array index in hash table where record was found, -1 if none found
 
+  div $a0, $a2 # divide id by table size to get array index
+  mfhi $t2 # $t0 = array index
   addi $sp, $sp, -8
 
   li $t0, 4  # $t0 contains the word offset
   li $t1, -1 #TOMBSTONE
 
   # Get index in the original array
-  div $a0, $a2  # Divide i/MAX
-  mfhi $t2  # Store remainder in $t2
   move $t5, $a0  # Copy student id
   sw $s0, 0($sp)
   sw $ra, 4($sp)
@@ -245,11 +246,12 @@ find_elem:
   add $t4, $a1, $t3  # Update address of the hash table
   lw $t6, 0($t4)  # Get address of student record. I'm confused - what's stored in the hash table exactly? -
   beq $t6, $t1, increment #skip over the tombstone value
+  beqz $t6, increment 
  
-  #lw $t7, 0($t6)  # Load the student ID from the student record
-  srl $t6, $t6, 10  # Extract the student ID (22 bits)
+  lw $t7, 0($t6)  # Load the student ID from the student record
+  srl $t7, $t7, 10  # Extract the student ID (22 bits)
 
-  beq $t6, $a0, found_elem  # Compare the loaded student ID with the input student ID
+  beq $t7, $a0, found_elem  # Compare the loaded student ID with the input student ID
 
 increment:		
   addi $t5, $t5, 1  # Increment ID by one
@@ -262,7 +264,6 @@ found_elem:
   move $v0, $t6  # Pointer to student record
   move $v1, $t2  # Array index in hash table
   j exit_loop
-
 not_found:
   li $v0, 0
   li $v1, -1
