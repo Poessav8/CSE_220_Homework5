@@ -216,66 +216,71 @@ check_index:
 	
 	
 search:
-	#$a0: student id (integer)
-	#$a1: address of hash table
-	#$a2: table size
-	
-	#search for matching student record using linear probe algorithm
-	#returns pointer
-	#skip over the tombstone value when searching for matching
-	
-	#return in $v0: pointer to student record if found, 0 if not
-	#return in $v1: array index in hash table where record was found, -1 if none found
-	addi $sp, $sp, -8
-	
-	li $t0, 4  # $t0 contains the word offset
-	
-	#get index in original array
-	div $a0, $a2 #divide i/MAX
-	mfhi $t2 #store remainder in $t2
-	
-	move $t5, $a0 #copy student id
-	
-	sw $s0, 0($sp)
-	sw $ra, 4($sp)
-	
-	move $s0, $t2 #store remainder in $s0
-	
-	
-	#linear probe algorithm (copied from above function)
-	find_elem:
-  	mul $t3, $t2, $t0 #get index in hash table, accounting for word size
-  	add $t4, $a1, $t3 #get address of index in hash table
-  	lw $t2, 0($t4) #get word from address of index in hash table
-  	beq $a0, $t2, found_elem #if empty, insert
-  
-  	#else, we need to linear probe.
-  	addi $t5, $t5, 1 #increment the student's ID by one
-  	div $t5, $a2 #divide (id+1)/MAX
-  	mfhi $t2 #store remainder in $t5
-  
-  	beq $t2, $s0, not_found #if we get back to original index, the hash table is full.
-  
-  	j find_elem
+  #$a0: student id (integer)
+  #$a1: address of hash table
+  #$a2: table size
 
+  # Search for matching student record using linear probe algorithm
+  # Skip over the tombstone value when searching for a match
+  # Return in $v0: pointer to student record if found, 0 if not
+  # Return in $v1: array index in hash table where record was found, -1 if none found
 
+  addi $sp, $sp, -8
 
-  found_elem:
-  	move $v0, $t4  # pointer to student record
-  	move $v1, $t2
-  	
-  	j exit_loop
+  li $t0, 4  # $t0 contains the word offset
+  li $t1, -1 #TOMBSTONE
 
+  # Get index in the original array
+  div $a0, $a2  # Divide i/MAX
+  mfhi $t2  # Store remainder in $t2
+  move $t5, $a0  # Copy student id
+  sw $s0, 0($sp)
+  sw $ra, 4($sp)
 
- not_found:
-  	li $v0, 0
-  	li $v1, -1
-  	j exit_loop
+  move $s0, $t2  # Store remainder in $s0
+  move $t4, $a1  # Copy address of hash table
+
+find_elem:
+  mul $t3, $t2, $t0  # Get index in the hash table, accounting for word offset
+  add $t4, $a1, $t3  # Update address of the hash table
+  lw $t6, 0($t4)  # Get address of student record. I'm confused - what's stored in the hash table exactly? -
+  beq $t6, $t1, increment #skip over the tombstone value
+ 
+  #lw $t7, 0($t6)  # Load the student ID from the student record
+  srl $t6, $t6, 10  # Extract the student ID (22 bits)
+
+  beq $t6, $a0, found_elem  # Compare the loaded student ID with the input student ID
+
+increment:		
+  addi $t5, $t5, 1  # Increment ID by one
+  div $t5, $a2  # Divide (id+1)/MAX
+  mfhi $t2  # Store remainder in $t2
+  beq $t2, $s0, not_found  # If back to the original index, student was not found
+  j find_elem
+
+found_elem:
+  move $v0, $t6  # Pointer to student record
+  move $v1, $t2  # Array index in hash table
+  j exit_loop
+
+not_found:
+  li $v0, 0
+  li $v1, -1
+  j exit_loop
 
 exit_loop:
-	lw $ra, 4($sp)
-  	lw $s0, 0($sp)
-  	addi $sp, $sp, 8
+  lw $ra, 4($sp)
+  lw $s0, 0($sp)
+  addi $sp, $sp, 8
 
-	
-	jr $ra
+  jr $ra
+
+
+delete:
+  #$a0: int id
+  #$a1: struct student *table[]
+  #$a2: int table_size
+
+  #calls search. 
+  #search for an item, then replace it with the tombstone value
+  jr $ra
