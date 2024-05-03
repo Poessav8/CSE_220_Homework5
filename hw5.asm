@@ -216,7 +216,66 @@ check_index:
 	
 	
 search:
-	jr $ra
+	#$a0: student id (integer)
+	#$a1: address of hash table
+	#$a2: table size
+	
+	#search for matching student record using linear probe algorithm
+	#returns pointer
+	#skip over the tombstone value when searching for matching
+	
+	#return in $v0: pointer to student record if found, 0 if not
+	#return in $v1: array index in hash table where record was found, -1 if none found
+	addi $sp, $sp, -8
+	
+	li $t0, 4  # $t0 contains the word offset
+	
+	#get index in original array
+	div $a0, $a2 #divide i/MAX
+	mfhi $t2 #store remainder in $t2
+	
+	move $t5, $a0 #copy student id
+	
+	sw $s0, 0($sp)
+	sw $ra, 4($sp)
+	
+	move $s0, $t2 #store remainder in $s0
+	
+	
+	#linear probe algorithm (copied from above function)
+	find_elem:
+  	mul $t3, $t2, $t0 #get index in hash table, accounting for word size
+  	add $t4, $a1, $t3 #get address of index in hash table
+  	lw $t2, 0($t4) #get word from address of index in hash table
+  	beq $a0, $t2, found_elem #if empty, insert
+  
+  	#else, we need to linear probe.
+  	addi $t5, $t5, 1 #increment the student's ID by one
+  	div $t5, $a2 #divide (id+1)/MAX
+  	mfhi $t2 #store remainder in $t5
+  
+  	beq $t2, $s0, not_found #if we get back to original index, the hash table is full.
+  
+  	j find_elem
 
-delete:
+
+
+  found_elem:
+  	move $v0, $t4  # pointer to student record
+  	move $v1, $t2
+  	
+  	j exit_loop
+
+
+ not_found:
+  	li $v0, 0
+  	li $v1, -1
+  	j exit_loop
+
+exit_loop:
+	lw $ra, 4($sp)
+  	lw $s0, 0($sp)
+  	addi $sp, $sp, 8
+
+	
 	jr $ra
