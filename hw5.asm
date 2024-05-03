@@ -289,8 +289,8 @@ delete:
   addi $sp, $sp, -8 #create space on stack to store $ra
   sw $ra, 0($sp) #store $ra on stack
   sw $s0, 4($sp)
-  li $t0, -1 #tombstone value
-  li $t1, 4 #offset val
+  li $t0, 4 #tombstone value
+  li $t1, -1 #offset val
 
   jal search #call search 
   move $s0, $v0
@@ -302,13 +302,14 @@ delete:
   move $t3, $v1 #store index in $t3
 
   #replace.
-  mul $t2, $t1, $t3 #get index in hash table, accounting for offset
-  add $t4, $a1, $t2
-  sw $t0, 0($t4) #replace pointer with $t1, which is the tombstone value
+  mul $t2, $t0, $t3 #get index in hash table, accounting for offset
+  add $a1, $a1, $t2 #increment hash table address
+  sw $t1, 0($a1) #modify the actual array by storing tombstone val
   move $v0, $t3 #move value in
   move $v1, $0 #clear $v1
   j end_delete
   
+  #okay. problem here is that when it comes time to print the tombstone, it's not printed. 
 
 
 
