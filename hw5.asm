@@ -238,17 +238,17 @@ search:
   sw $s0, 0($sp)
   sw $ra, 4($sp)
 
-  move $s0, $t2  # Store remainder in $s0
+  move $t6, $t2  # Store original index in $t6
   move $t4, $a1  # Copy address of hash table
 
 find_elem:
   mul $t3, $t2, $t0  # Get index in the hash table, accounting for word offset
   add $t4, $a1, $t3  # Update address of the hash table
-  lw $t6, 0($t4)  # Get address of student record. I'm confused - what's stored in the hash table exactly? -
-  beq $t6, $t1, increment #skip over the tombstone value
-  beqz $t6, increment 
+  lw $s0, 0($t4)  
+  beq $s0, $t1, increment #skip over the tombstone value
+  beqz $s0, increment 
  
-  lw $t7, 0($t6)  # Load the student ID from the student record
+  lw $t7, 0($s0)  # Load the student ID from the student record
   srl $t7, $t7, 10  # Extract the student ID (22 bits)
 
   beq $t7, $a0, found_elem  # Compare the loaded student ID with the input student ID
@@ -257,11 +257,11 @@ increment:
   addi $t5, $t5, 1  # Increment ID by one
   div $t5, $a2  # Divide (id+1)/MAX
   mfhi $t2  # Store remainder in $t2
-  beq $t2, $s0, not_found  # If back to the original index, student was not found
+  beq $t2, $t6, not_found  # If back to the original index, student was not found
   j find_elem
 
 found_elem:
-  move $v0, $t6  # Pointer to student record
+  move $v0, $s0  # Pointer to student record
   move $v1, $t2  # Array index in hash table
   j exit_loop
 not_found:
@@ -286,16 +286,15 @@ delete:
   #search for an item, then replace it with the tombstone value
   #if item not found, return -1. if found, return the array index where it was found
 
-  addi $sp, $sp, -8 #create space on stack to store $ra
+  addi $sp, $sp, -4 #create space on stack to store $ra
   sw $ra, 0($sp) #store $ra on stack
-  sw $s0, 4($sp)
   li $t0, 4 #tombstone value
   li $t1, -1 #offset val
 
   jal search #call search 
-  move $s0, $v0
+  
   #if $v0 is null, then move $v0, -1
-  beqz $s0, search_failed
+  beqz $v0, search_failed
   #otherwise, we have found the item. 
   # now, $v1 contains the index within the array, not multiplied by 4
   #so now we go in and replace hash[index] with $t0
@@ -308,8 +307,6 @@ delete:
   move $v0, $t3 #move value in
   move $v1, $0 #clear $v1
   j end_delete
-  
-  #okay. problem here is that when it comes time to print the tombstone, it's not printed. 
 
 
 
@@ -320,7 +317,6 @@ delete:
 
   end_delete:
   lw $ra, 0($sp) #load back $ra
-  lw $s0, 4($sp) #load back $s0
-  addi $sp, $sp, 8 #deallocate space on stack 
+  addi $sp, $sp, 4 #deallocate space on stack 
  
   jr $ra
