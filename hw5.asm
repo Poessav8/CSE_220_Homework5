@@ -284,4 +284,42 @@ delete:
 
   #calls search. 
   #search for an item, then replace it with the tombstone value
+  #if item not found, return -1. if found, return the array index where it was found
+
+  addi $sp, $sp, -8 #create space on stack to store $ra
+  sw $ra, 0($sp) #store $ra on stack
+  sw $s0, 4($sp)
+  li $t0, -1 #tombstone value
+  li $t1, 4 #offset val
+
+  jal search #call search 
+  move $s0, $v0
+  #if $v0 is null, then move $v0, -1
+  beqz $s0, search_failed
+  #otherwise, we have found the item. 
+  # now, $v1 contains the index within the array, not multiplied by 4
+  #so now we go in and replace hash[index] with $t0
+  move $t3, $v1 #store index in $t3
+
+  #replace.
+  mul $t2, $t1, $t3 #get index in hash table, accounting for offset
+  add $t4, $a1, $t2
+  sw $t0, 0($t4) #replace pointer with $t1, which is the tombstone value
+  move $v0, $t3 #move value in
+  move $v1, $0 #clear $v1
+  j end_delete
+  
+
+
+
+  search_failed:
+    li $v0, -1
+    j end_delete
+
+
+  end_delete:
+  lw $ra, 0($sp) #load back $ra
+  lw $s0, 4($sp) #load back $s0
+  addi $sp, $sp, 8 #deallocate space on stack 
+ 
   jr $ra
